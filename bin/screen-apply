@@ -15,7 +15,7 @@ mstate="$HOME/.config/screen-master"
 last="${XDG_RUNTIME_DIR:-/tmp}/screen-apply.last"
 
 BASE_LAPTOP=60 BASE_LENOVO=85 BASE_ARZOPA=75 NIGHT_SCALE=55
-ARZOPA_MAX=68   # ponytail: ARZOPA portable blacks out above ~70% — hard ceiling, do not exceed
+ARZOPA_MAX=73   # ponytail: ARZOPA portable blacks out above 73% (tested) — hard ceiling, do not exceed
 [[ -r $conf ]] && source "$conf"
 
 M=$(cat "$mstate" 2>/dev/null); [[ $M =~ ^[0-9]+$ ]] || M=100

@@ -5,10 +5,10 @@
 #   manual:   echo 100 > ~/.config/screen-master ; edit a BASE ; run screen-apply ; eyeball ; repeat
 BASE_LAPTOP=60     # eDP internal panel
 BASE_LENOVO=85     # LEN G32qc-10
-BASE_ARZOPA=68     # ARZOPA portable -- keep <= ARZOPA_MAX
+BASE_ARZOPA=73     # ARZOPA portable -- keep <= ARZOPA_MAX
 
-# ARZOPA blacks out above ~70%. Hard safety ceiling, clamped in screen-apply.
-ARZOPA_MAX=68
+# ARZOPA blacks out above 73% (tested). Hard safety ceiling, clamped in screen-apply.
+ARZOPA_MAX=73
 
 # Extra global dim at full night (Night Light at its min temp). 100 = no extra dim, 0 = blackest.
 NIGHT_SCALE=55

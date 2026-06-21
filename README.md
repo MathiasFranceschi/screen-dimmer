@@ -107,8 +107,8 @@ only scale *down* from it. Two ways to set them:
   run `screen-calibrate`. Both write the current brightness into the config as the bases.
 - **By hand**: edit `~/.config/screen-bright.conf` and run `screen-apply`.
 
-> **ARZOPA quirk**: it blacks out above ~70%. `ARZOPA_MAX` (default 68) is a hard
-> ceiling clamped in `screen-apply` — keep `BASE_ARZOPA` ≤ it.
+> **ARZOPA quirk**: it blacks out above 73% (tested). `ARZOPA_MAX` (default 73) is a
+> hard ceiling clamped in `screen-apply` — keep `BASE_ARZOPA` ≤ it.
 
 ## Notes / limitations
 
