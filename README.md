@@ -94,7 +94,20 @@ Three ways, all set up by `install.sh`:
 |---------|------|
 | `screen-slider` | master slider (0–100) for all calibrated screens |
 | `screen-apply` | recompute & apply base × master × nightlight (used by the timer) |
+| `screen-calibrate` | snapshot each screen's current brightness as its new base |
 | `screen-dim <0-100>` | low-level: same absolute % on all screens, ignores calibration |
+
+### Calibrating
+
+`BASE_*` in the config is each screen's **ceiling** — the slider and Night Light
+only scale *down* from it. Two ways to set them:
+
+- **By eye, then snapshot**: match the screens with their physical OSD buttons (at
+  master 100, daytime), then run `screen-calibrate` to write the values into the config.
+- **By hand**: edit `~/.config/screen-bright.conf` and run `screen-apply`.
+
+> **ARZOPA quirk**: it blacks out above ~70%. `ARZOPA_MAX` (default 68) is a hard
+> ceiling clamped in `screen-apply` — keep `BASE_ARZOPA` ≤ it.
 
 ## Notes / limitations
 

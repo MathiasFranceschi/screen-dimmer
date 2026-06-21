@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# screen-calibrate : snapshot each screen's CURRENT brightness as its base.
+# Match the 3 screens by eye first (physical OSD buttons / laptop slider), ideally
+# with master at 100 in daylight, then run this. Writes BASE_* into screen-bright.conf
+# (comments preserved) and resets master to 100.
+set -u
+conf="$HOME/.config/screen-bright.conf"
+[[ -f $conf ]] || { echo "no $conf — install first"; exit 1; }
+
+ddc(){ ddcutil --model "$1" getvcp 10 --terse 2>/dev/null | awk '{print $4}'; }   # VCP 10 C <cur> <max>
+upd(){ grep -q "^$1=" "$conf" && sed -i "s|^$1=.*|$1=$2|" "$conf" || printf '%s=%s\n' "$1" "$2" >>"$conf"; }
+
+bl=/sys/class/backlight/amdgpu_bl1
+L=$(( $(cat "$bl/brightness") * 100 / $(cat "$bl/max_brightness") ))
+N=$(ddc "LEN G32qc-10")
+A=$(ddc "ARZOPA")
+
+m=$(cat "$HOME/.config/screen-master" 2>/dev/null)
+[[ $m == 100 ]] || echo "note: master=$m (not 100) — capturing current absolute brightness as the base"
+
+[[ $L =~ ^[0-9]+$ ]] && upd BASE_LAPTOP "$L" || echo "laptop: read failed, skipped"
+[[ $N =~ ^[0-9]+$ ]] && upd BASE_LENOVO "$N" || echo "lenovo: read failed, skipped"
+[[ $A =~ ^[0-9]+$ ]] && upd BASE_ARZOPA "$A" || echo "arzopa: read failed, skipped"
+
+echo "captured -> BASE_LAPTOP=$L BASE_LENOVO=$N BASE_ARZOPA=$A"
+echo 100 > "$HOME/.config/screen-master"
+exec "$HOME/.local/bin/screen-apply"
