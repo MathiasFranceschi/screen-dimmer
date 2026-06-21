@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# screen-apply : set all 3 screens to  base[screen] * master% * nightlight% .
+#   base       = per-screen eye-calibration (~/.config/screen-bright.conf)
+#   master     = single slider value 0-100 (~/.config/screen-master), scales all together
+#   nightlight = rides GNOME Night Light's live Temperature (same curve as Night Light)
+# Externals matched by MODEL (stable across i2c bus reorder/replug), laptop via logind.
+# Change-detected: only touches hardware when a screen's final % actually moves.
+#
+# MACHINE-SPECIFIC (edit for your hardware):
+#   - laptop backlight device name -> line with /sys/class/backlight/<NAME>  (ls /sys/class/backlight/)
+#   - external monitor model strings in the two ddcutil lines               (ddcutil detect)
+set -u
+conf="$HOME/.config/screen-bright.conf"
+mstate="$HOME/.config/screen-master"
+last="${XDG_RUNTIME_DIR:-/tmp}/screen-apply.last"
+
+BASE_LAPTOP=60 BASE_LENOVO=85 BASE_ARZOPA=75 NIGHT_SCALE=55
+[[ -r $conf ]] && source "$conf"
+
+M=$(cat "$mstate" 2>/dev/null); [[ $M =~ ^[0-9]+$ ]] || M=100
+
+# nightlight factor (100=day .. NIGHT_SCALE=full night) from gsd-color Temperature
+DAY_T=6500
+NIGHT_T=$(gsettings get org.gnome.settings-daemon.plugins.color night-light-temperature 2>/dev/null | awk '{print $NF}'); [[ $NIGHT_T =~ ^[0-9]+$ ]] || NIGHT_T=2700
+T=$(busctl --user get-property org.gnome.SettingsDaemon.Color /org/gnome/SettingsDaemon/Color \
+      org.gnome.SettingsDaemon.Color Temperature 2>/dev/null | awk '{print $2}')
+[[ $T =~ ^[0-9]+$ ]] || T=$DAY_T
+if (( NIGHT_T >= DAY_T )); then NL=100
+else
+  (( T < NIGHT_T )) && T=$NIGHT_T; (( T > DAY_T )) && T=$DAY_T
+  NL=$(( NIGHT_SCALE + (T - NIGHT_T) * (100 - NIGHT_SCALE) / (DAY_T - NIGHT_T) ))
+fi
+
+f(){ local v=$(( $1 * M / 100 * NL / 100 )); (( v<0 ))&&v=0; (( v>100 ))&&v=100; echo "$v"; }
+pL=$(f "$BASE_LAPTOP"); pN=$(f "$BASE_LENOVO"); pA=$(f "$BASE_ARZOPA")
+
+now="$pL $pN $pA"
+[[ "$now" == "$(cat "$last" 2>/dev/null)" ]] && exit 0
+echo "$now" > "$last"
+
+# laptop via logind (active session, no root)
+max=$(cat /sys/class/backlight/amdgpu_bl1/max_brightness 2>/dev/null || echo 0)
+(( max > 0 )) && busctl call org.freedesktop.login1 /org/freedesktop/login1/session/auto \
+  org.freedesktop.login1.Session SetBrightness ssu backlight amdgpu_bl1 $(( pL * max / 100 )) 2>/dev/null
+# externals via DDC/CI, matched by model (stable id)
+ddcutil --model "LEN G32qc-10" --noverify setvcp 10 "$pN" 2>/dev/null || true
+ddcutil --model "ARZOPA"       --noverify setvcp 10 "$pA" 2>/dev/null || true

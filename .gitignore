@@ -1,0 +1,3 @@
+# runtime state (lives in ~/.config and $XDG_RUNTIME_DIR, never in the repo)
+screen-master
+*.last

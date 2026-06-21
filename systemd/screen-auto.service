@@ -1,0 +1,6 @@
+[Unit]
+Description=Track Night Light ramp -> screen brightness
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/screen-apply

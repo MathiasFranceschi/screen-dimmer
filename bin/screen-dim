@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# screen-dim <0-100> : set the SAME absolute brightness on all 3 screens (no calibration).
+#   laptop eDP (no DDC/CI) -> logind SetBrightness (no root)
+#   external monitors      -> DDC/CI VCP 0x10 (no root, via ddcutil uaccess ACL)
+# Low-level utility; for the calibrated slider use screen-slider / screen-apply instead.
+# ponytail: re-probes DDC displays every run so i2c bus reorder / replug can't break it.
+set -u
+pct=${1:?usage: screen-dim <0-100>}
+(( pct < 0 ))   && pct=0
+(( pct > 100 )) && pct=100
+
+# laptop backlight via logind (active session, no root)
+bl=/sys/class/backlight/amdgpu_bl1
+if [[ -r $bl/max_brightness ]]; then
+  max=$(cat "$bl/max_brightness")
+  busctl call org.freedesktop.login1 /org/freedesktop/login1/session/auto \
+    org.freedesktop.login1.Session SetBrightness ssu backlight amdgpu_bl1 $(( pct * max / 100 )) 2>/dev/null
+fi
+
+# external monitors via DDC/CI (feature 0x10 = brightness, 0-100 scale)
+for d in $(ddcutil detect --terse 2>/dev/null | grep -oP '^Display \K[0-9]+'); do
+  ddcutil --display "$d" --noverify setvcp 10 "$pct" 2>/dev/null || true
+done
