@@ -3,9 +3,9 @@
 # the slider (master) and Night Light only scale DOWN from it, never above.
 #   workflow: match screens by eye (physical buttons), then run `screen-calibrate`
 #   manual:   echo 100 > ~/.config/screen-master ; edit a BASE ; run screen-apply ; eyeball ; repeat
-BASE_LAPTOP=60     # eDP internal panel
-BASE_LENOVO=85     # LEN G32qc-10
-BASE_ARZOPA=73     # ARZOPA portable -- keep <= ARZOPA_MAX
+BASE_LAPTOP=89     # eDP internal panel       (tinee eye-calibrated)
+BASE_LENOVO=100    # LEN G32qc-10             (tinee eye-calibrated)
+BASE_ARZOPA=73     # ARZOPA portable -- keep <= ARZOPA_MAX (tinee eye-calibrated)
 
 # ARZOPA blacks out above 73% (tested). Hard safety ceiling, clamped in screen-apply.
 ARZOPA_MAX=73
