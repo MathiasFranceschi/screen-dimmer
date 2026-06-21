@@ -42,6 +42,27 @@ $EDITOR ~/.config/screen-bright.conf   # tune BASE_* until screens look equal
 screen-slider                          # master dimmer for all screens
 ```
 
+### Bedtime / auto dim (requires Night Light)
+
+The time-based dim **rides GNOME Night Light** — if Night Light is off, the
+master slider still works but brightness never dims on a schedule. Turn it on and
+set the schedule/temperature in **Settings → Display → Night Light** (or
+automatic + Location Services for real sunset). `install.sh` enables it for you:
+
+```sh
+gsettings set org.gnome.settings-daemon.plugins.color night-light-enabled true
+```
+
+### Optional: bind the slider to a hotkey (Super+B)
+
+```sh
+p=/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/screendim/
+gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['$p']"
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$p name 'Screen dimmer'
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$p command "$HOME/.local/bin/screen-slider"
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:$p binding '<Super>b'
+```
+
 ## Dependencies
 
 - `ddcutil` — DDC/CI brightness for external monitors (ships the i2c uaccess udev rule)

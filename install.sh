@@ -26,6 +26,10 @@ cp "$here"/systemd/* ~/.config/systemd/user/
 # --- DDC/CI access for the active user (ddcutil ships the uaccess udev rule) ---
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
+# --- the bedtime/auto dim RIDES GNOME Night Light: it must be on (set schedule + temp
+#     in Settings > Display > Night Light, or it stays fixed-hours as already configured) ---
+gsettings set org.gnome.settings-daemon.plugins.color night-light-enabled true
+
 # --- enable the Night Light rider ---
 systemctl --user daemon-reload
 systemctl --user enable --now screen-auto.timer
