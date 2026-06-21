@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Screen Dimmer
+Comment=Brightness slider for all screens (eye-calibrated)
+Exec=__BIN__/screen-slider
+Icon=display-brightness-symbolic
+Terminal=false
+Categories=Utility;
+Keywords=brightness;dim;luminosity;monitor;night;screen;
+StartupNotify=false

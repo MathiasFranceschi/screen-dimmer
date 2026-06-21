@@ -80,6 +80,14 @@ This is built for one machine (1 laptop + Lenovo G32qc + ARZOPA). Three spots in
 | external monitor models | the two `ddcutil --model "..."` lines | `ddcutil detect` |
 | per-screen base values | `~/.config/screen-bright.conf` | calibrate by eye |
 
+## Opening the slider
+
+Three ways, all set up by `install.sh`:
+
+- **Super+B** hotkey
+- **Screen Dimmer** icon in the app grid / Activities search
+- `screen-slider` in a terminal
+
 ## Commands
 
 | Command | Does |
@@ -104,5 +112,10 @@ systemctl --user disable --now screen-auto.timer
 rm ~/.local/bin/{screen-apply,screen-slider,screen-dim}
 rm ~/.config/systemd/user/screen-auto.{service,timer}
 rm ~/.config/screen-bright.conf
+rm ~/.local/share/applications/screen-dimmer.desktop
+gsettings reset org.gnome.settings-daemon.plugins.media-keys custom-keybindings   # drops the Super+B entry
 systemctl --user daemon-reload
 ```
+
+(Night Light, Location, and `/etc/modules-load.d/i2c-dev.conf` are left as-is —
+they're GNOME/system settings, not owned by this tool.)

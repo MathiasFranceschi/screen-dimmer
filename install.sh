@@ -26,9 +26,28 @@ cp "$here"/systemd/* ~/.config/systemd/user/
 # --- DDC/CI access for the active user (ddcutil ships the uaccess udev rule) ---
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
-# --- the bedtime/auto dim RIDES GNOME Night Light: it must be on (set schedule + temp
-#     in Settings > Display > Night Light, or it stays fixed-hours as already configured) ---
+# --- the bedtime/auto dim RIDES GNOME Night Light: enable it, sunset-driven ---
 gsettings set org.gnome.settings-daemon.plugins.color night-light-enabled true
+gsettings set org.gnome.settings-daemon.plugins.color night-light-schedule-automatic true
+gsettings set org.gnome.system.location enabled true          # sunset/sunrise needs a location fix
+
+# --- app-grid launcher (clickable icon, searchable in Activities) ---
+mkdir -p ~/.local/share/applications
+sed "s|__BIN__|$HOME/.local/bin|" "$here/screen-dimmer.desktop" > ~/.local/share/applications/screen-dimmer.desktop
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
+
+# --- Super+B hotkey for the slider (append, don't clobber existing custom shortcuts) ---
+kp=/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/screendim/
+key=org.gnome.settings-daemon.plugins.media-keys
+cur=$(gsettings get $key custom-keybindings)
+case "$cur" in
+  *screendim*) : ;;                                            # already present
+  "@as []"|"[]") gsettings set $key custom-keybindings "['$kp']" ;;
+  *)             gsettings set $key custom-keybindings "${cur%]}, '$kp']" ;;
+esac
+gsettings set $key.custom-keybinding:$kp name 'Screen dimmer'
+gsettings set $key.custom-keybinding:$kp command "$HOME/.local/bin/screen-slider"
+gsettings set $key.custom-keybinding:$kp binding '<Super>b'
 
 # --- enable the Night Light rider ---
 systemctl --user daemon-reload
