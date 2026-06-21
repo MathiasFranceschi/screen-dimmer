@@ -11,7 +11,7 @@ out=$(zenity --scale --title="Screen dimmer" --text="All screens (eye-calibrated
         --extra-button="$SNAP" 2>/dev/null)
 
 if [[ $out == "$SNAP" ]]; then
-  exec "$HOME/.local/bin/screen-calibrate"
+  msg=$("$HOME/.local/bin/screen-calibrate" 2>&1) || zenity --error --title="Screen dimmer" --text="$msg" 2>/dev/null
 elif [[ $out =~ ^[0-9]+$ ]]; then
   echo "$out" > "$mstate"
   exec "$HOME/.local/bin/screen-apply"

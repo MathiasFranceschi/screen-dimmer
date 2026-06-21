@@ -10,31 +10,44 @@
 #   - laptop backlight device name -> line with /sys/class/backlight/<NAME>  (ls /sys/class/backlight/)
 #   - external monitor model strings in the two ddcutil lines               (ddcutil detect)
 set -u
+
+# ---- pure helpers (no I/O; unit-tested by tests/test-compute.sh) ----
+nl_factor(){ # T NIGHT_T DAY_T NIGHT_SCALE -> nightlight % (100=day .. NIGHT_SCALE=full night)
+  local T=$1 NIGHT_T=$2 DAY_T=$3 NS=$4
+  if (( NIGHT_T >= DAY_T )); then echo 100; return; fi   # Night Light off/no-ramp
+  (( T < NIGHT_T )) && T=$NIGHT_T; (( T > DAY_T )) && T=$DAY_T
+  echo $(( NS + (T - NIGHT_T) * (100 - NS) / (DAY_T - NIGHT_T) ))
+}
+clamp(){ local v=$1 lo=${2:-0} hi=${3:-100}; (( v<lo ))&&v=$lo; (( v>hi ))&&v=$hi; echo "$v"; }
+compute(){ # M T NIGHT_T DAY_T NS baseL baseN baseA arzopaMax -> "pL pN pA"
+  local M=$1 T=$2 NIGHT_T=$3 DAY_T=$4 NS=$5 bL=$6 bN=$7 bA=$8 amax=$9
+  local NL; NL=$(nl_factor "$T" "$NIGHT_T" "$DAY_T" "$NS")
+  printf '%s %s %s\n' \
+    "$(clamp $(( bL * M / 100 * NL / 100 )))" \
+    "$(clamp $(( bN * M / 100 * NL / 100 )))" \
+    "$(clamp $(( bA * M / 100 * NL / 100 )) 0 "$amax")"
+}
+
+# ---- sourced (by tests) -> only define functions, do no I/O ----
+[[ ${BASH_SOURCE[0]} != "${0}" ]] && return 0
+
+# ---- main: read real inputs, apply to hardware ----
 conf="$HOME/.config/screen-bright.conf"
 mstate="$HOME/.config/screen-master"
 last="${XDG_RUNTIME_DIR:-/tmp}/screen-apply.last"
 
-BASE_LAPTOP=60 BASE_LENOVO=85 BASE_ARZOPA=75 NIGHT_SCALE=55
-ARZOPA_MAX=73   # ponytail: ARZOPA portable blacks out above 73% (tested) — hard ceiling, do not exceed
+BASE_LAPTOP=60 BASE_LENOVO=85 BASE_ARZOPA=75 NIGHT_SCALE=55 DAY_T=6500
+ARZOPA_MAX=73   # ponytail: ARZOPA portable blacks out above 73% (tested) — hard ceiling
 [[ -r $conf ]] && source "$conf"
 
 M=$(cat "$mstate" 2>/dev/null); [[ $M =~ ^[0-9]+$ ]] || M=100
-
-# nightlight factor (100=day .. NIGHT_SCALE=full night) from gsd-color Temperature
-DAY_T=6500
 NIGHT_T=$(gsettings get org.gnome.settings-daemon.plugins.color night-light-temperature 2>/dev/null | awk '{print $NF}'); [[ $NIGHT_T =~ ^[0-9]+$ ]] || NIGHT_T=2700
 T=$(busctl --user get-property org.gnome.SettingsDaemon.Color /org/gnome/SettingsDaemon/Color \
       org.gnome.SettingsDaemon.Color Temperature 2>/dev/null | awk '{print $2}')
 [[ $T =~ ^[0-9]+$ ]] || T=$DAY_T
-if (( NIGHT_T >= DAY_T )); then NL=100
-else
-  (( T < NIGHT_T )) && T=$NIGHT_T; (( T > DAY_T )) && T=$DAY_T
-  NL=$(( NIGHT_SCALE + (T - NIGHT_T) * (100 - NIGHT_SCALE) / (DAY_T - NIGHT_T) ))
-fi
 
-f(){ local v=$(( $1 * M / 100 * NL / 100 )); (( v<0 ))&&v=0; (( v>100 ))&&v=100; echo "$v"; }
-pL=$(f "$BASE_LAPTOP"); pN=$(f "$BASE_LENOVO"); pA=$(f "$BASE_ARZOPA")
-(( pA > ARZOPA_MAX )) && pA=$ARZOPA_MAX   # hardware safety: never black out the ARZOPA
+read -r pL pN pA < <(compute "$M" "$T" "$NIGHT_T" "$DAY_T" "$NIGHT_SCALE" \
+                             "$BASE_LAPTOP" "$BASE_LENOVO" "$BASE_ARZOPA" "$ARZOPA_MAX")
 
 now="$pL $pN $pA"
 [[ "$now" == "$(cat "$last" 2>/dev/null)" ]] && exit 0

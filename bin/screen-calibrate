@@ -1,27 +1,37 @@
 #!/usr/bin/env bash
 # screen-calibrate : snapshot each screen's CURRENT brightness as its base.
-# Match the 3 screens by eye first (physical OSD buttons / laptop slider), ideally
-# with master at 100 in daylight, then run this. Writes BASE_* into screen-bright.conf
-# (comments preserved) and resets master to 100.
+# Match the 3 screens by eye first (physical OSD buttons / laptop slider), then run this.
+# MUST run at master=100 in daylight: bases are defined at full master with no Night Light
+# dim, so capturing while dimmed would bake the dim into the bases. Guarded below.
+# Writes BASE_* into screen-bright.conf (comments preserved) and re-applies.
 set -u
 conf="$HOME/.config/screen-bright.conf"
-[[ -f $conf ]] || { echo "no $conf — install first"; exit 1; }
+[[ -f $conf ]] || { echo "no $conf — install first" >&2; exit 1; }
+
+# guard: bases only make sense at master=100 (else we'd capture a scaled-down value)
+m=$(cat "$HOME/.config/screen-master" 2>/dev/null)
+if [[ $m != 100 ]]; then
+  echo "calibrate at master=100 (currently ${m:-unset}). Reset it, match screens by eye, then re-run:" >&2
+  echo "  echo 100 > ~/.config/screen-master && screen-apply" >&2
+  exit 1
+fi
+# warn: if Night Light is actively dimming, captured values include the dim
+nla=$(busctl --user get-property org.gnome.SettingsDaemon.Color /org/gnome/SettingsDaemon/Color \
+        org.gnome.SettingsDaemon.Color NightLightActive 2>/dev/null | awk '{print $2}')
+[[ $nla == true ]] && echo "warning: Night Light is dimming now — calibrate in daylight for true bases." >&2
 
 ddc(){ ddcutil --model "$1" getvcp 10 --terse 2>/dev/null | awk '{print $4}'; }   # VCP 10 C <cur> <max>
 upd(){ grep -q "^$1=" "$conf" && sed -i "s|^$1=.*|$1=$2|" "$conf" || printf '%s=%s\n' "$1" "$2" >>"$conf"; }
 
 bl=/sys/class/backlight/amdgpu_bl1
-L=$(( $(cat "$bl/brightness") * 100 / $(cat "$bl/max_brightness") ))
+mx=$(cat "$bl/max_brightness" 2>/dev/null); br=$(cat "$bl/brightness" 2>/dev/null)
+L=""; [[ $mx =~ ^[0-9]+$ && $br =~ ^[0-9]+$ && $mx -gt 0 ]] && L=$(( br * 100 / mx ))
 N=$(ddc "LEN G32qc-10")
 A=$(ddc "ARZOPA")
 
-m=$(cat "$HOME/.config/screen-master" 2>/dev/null)
-[[ $m == 100 ]] || echo "note: master=$m (not 100) — capturing current absolute brightness as the base"
-
-[[ $L =~ ^[0-9]+$ ]] && upd BASE_LAPTOP "$L" || echo "laptop: read failed, skipped"
-[[ $N =~ ^[0-9]+$ ]] && upd BASE_LENOVO "$N" || echo "lenovo: read failed, skipped"
-[[ $A =~ ^[0-9]+$ ]] && upd BASE_ARZOPA "$A" || echo "arzopa: read failed, skipped"
+[[ $L =~ ^[0-9]+$ ]] && upd BASE_LAPTOP "$L" || echo "laptop: read failed, skipped" >&2
+[[ $N =~ ^[0-9]+$ ]] && upd BASE_LENOVO "$N" || echo "lenovo: read failed, skipped" >&2
+[[ $A =~ ^[0-9]+$ ]] && upd BASE_ARZOPA "$A" || echo "arzopa: read failed, skipped" >&2
 
 echo "captured -> BASE_LAPTOP=$L BASE_LENOVO=$N BASE_ARZOPA=$A"
-echo 100 > "$HOME/.config/screen-master"
 exec "$HOME/.local/bin/screen-apply"
