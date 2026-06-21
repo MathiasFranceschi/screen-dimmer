@@ -103,7 +103,8 @@ Three ways, all set up by `install.sh`:
 only scale *down* from it. Two ways to set them:
 
 - **By eye, then snapshot**: match the screens with their physical OSD buttons (at
-  master 100, daytime), then run `screen-calibrate` to write the values into the config.
+  master 100, daytime), then capture — click **Snapshot as base** in the slider, or
+  run `screen-calibrate`. Both write the current brightness into the config as the bases.
 - **By hand**: edit `~/.config/screen-bright.conf` and run `screen-apply`.
 
 > **ARZOPA quirk**: it blacks out above ~70%. `ARZOPA_MAX` (default 68) is a hard

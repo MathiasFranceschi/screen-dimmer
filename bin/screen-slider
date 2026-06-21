@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
 # screen-slider : one master slider (0-100) for all 3 calibrated screens.
+# OK            -> set master, re-apply.
+# "Snapshot..." -> capture each screen's current brightness as its new base.
 mstate="$HOME/.config/screen-master"
 cur=$(cat "$mstate" 2>/dev/null); [[ $cur =~ ^[0-9]+$ ]] || cur=100
-M=$(zenity --scale --title="Screen dimmer" --text="All screens (eye-calibrated)" \
-      --min-value=0 --max-value=100 --value="$cur" --step=5 2>/dev/null) || exit 0
-echo "$M" > "$mstate"
-exec "$HOME/.local/bin/screen-apply"
+SNAP="Snapshot as base"
+
+out=$(zenity --scale --title="Screen dimmer" --text="All screens (eye-calibrated)" \
+        --min-value=0 --max-value=100 --value="$cur" --step=5 \
+        --extra-button="$SNAP" 2>/dev/null)
+
+if [[ $out == "$SNAP" ]]; then
+  exec "$HOME/.local/bin/screen-calibrate"
+elif [[ $out =~ ^[0-9]+$ ]]; then
+  echo "$out" > "$mstate"
+  exec "$HOME/.local/bin/screen-apply"
+fi
+# cancelled -> do nothing
